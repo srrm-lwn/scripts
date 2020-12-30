@@ -20,6 +20,9 @@
     }).get();
     console.log("Retrieved " + urls.length + " URLs");
 
+    var priceCards = $(".list-card-price");
+    console.log("Retrieved " + priceCards.length + " Price Cards");
+
     var rentalEstimates = $('<div id="rentalEstimates"></div>');
     var estimatesTable = $('<table style="border: 1px solid black;"></table>');
     rentalEstimates.append(estimatesTable);
