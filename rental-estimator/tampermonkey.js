@@ -55,16 +55,18 @@
     }
 
     function addMonthlyCostEstimate(article, cardInfo, index) {
-        let monthlyCostMsg = "Cost (w/o mortgage): Not Available";
+        let monthlyCostMsg = "Non-Mortgage Costs: Not Available";
         let price = article.find(".list-card-price").text();
         if (price !== undefined) {
-            price = price.replace("$", "").replace(",", "");
+            price = price.replace("$", "").replace(",", "").replace("+", "");
             const insurance = insuranceMultiplier * price / 12;
             const propertyTax = propertyTaxRate[defaultState] * price / 12;
             //todo: add HOA
-            const monthlyCost = (insurance + propertyTax).toFixed(2);
+            const monthlyCost = (insurance + propertyTax).toFixed(0);
             console.log("Price = " + price + "; Insurance = " + insurance + "; Property Tax = " + propertyTax + "; Monthly Cost = " + monthlyCost);
-            monthlyCostMsg = "Cost (w/o) mortgage): $" + monthlyCost + "/mo";
+            if (monthlyCost !== undefined || !isNaN(parseFloat(monthlyCost))) {
+                monthlyCostMsg = "Non-Mortgage Costs: $" + monthlyCost + "/mo";
+            }
         }
         console.info(monthlyCostMsg);
         const monthlyCostFooter = $('<div></div>');
