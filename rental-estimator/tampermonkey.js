@@ -18,40 +18,87 @@
         return;
     }
 
-    // Your code here...
+    const propertyTaxRate = {"AZ": 0.0068};
+    const insuranceMultiplier = 1466 / 349000;
+
     console.info("### Starting Rental Estimate Summary");
 
-    var articles = $("article");
+    //Extract listings (i.e. articles)
+    const articles = $("article");
     console.info("Found " + articles.length + " articles");
-
-    var numOfEstimates = 0;
+    //Extract a default State for listings to compute property taxes
+    const defaultState = extractDefaultState(articles);
+    //Extract and add monthly cost and rental estimates for each listing (i.e. article)
     articles.map(function() {
-        var article = $(this);
-        var url = article.find("div a").attr("href");
+        const article = $(this);
+        const cardInfo = article.find(".list-card-info");
+        var index = 4;
+        addMonthlyCostEstimate(article, cardInfo, index++);
+        addRentalEstimate(article, cardInfo, index++);
+    });
+
+    function extractDefaultState(articles) {
+        let state = undefined;
+        articles.map(function () {
+            const article = $(this);
+
+            if (state === undefined) {
+                const address = article.find("address").text();
+                const pattern = /[A-Z]{2} [0-9]{5}/;
+                if (pattern.test(address)) {
+                    state = pattern.exec(address)[0].split(" ")[0];
+                    console.info("Using state " + state + " as default for property taxes.");
+                }
+            }
+        });
+        return state;
+    }
+
+    function addMonthlyCostEstimate(article, cardInfo, index) {
+        let monthlyCostMsg = "Cost (w/o mortgage): Not Available";
+        let price = article.find(".list-card-price").text();
+        if (price !== undefined) {
+            price = price.replace("$", "").replace(",", "");
+            const insurance = insuranceMultiplier * price / 12;
+            const propertyTax = propertyTaxRate[defaultState] * price / 12;
+            //todo: add HOA
+            const monthlyCost = (insurance + propertyTax).toFixed(2);
+            console.log("Price = " + price + "; Insurance = " + insurance + "; Property Tax = " + propertyTax + "; Monthly Cost = " + monthlyCost);
+            monthlyCostMsg = "Cost (w/o) mortgage): $" + monthlyCost + "/mo";
+        }
+        console.info(monthlyCostMsg);
+        const monthlyCostFooter = $('<div></div>');
+        monthlyCostFooter.css("order", index);
+        monthlyCostFooter.append('<div class="list-card-type"> ' + monthlyCostMsg + ' </div>');
+        cardInfo.append(monthlyCostFooter);
+    }
+
+    function addRentalEstimate(article, cardInfo, index) {
+        let numOfEstimates = 0;
+        const url = article.find("div a").attr("href");
         console.debug("Fetching URL - " + url);
-        $.get(url).then(function(data) {
+        $.get(url).then(function (data) {
             console.debug("Fetched URL - " + url);
 
-            var secret = $('<div id="secret"></div>');
+            const secret = $('<div id="secret"></div>');
             $('body').append(secret);
             secret.hide();
-            var nodes = jQuery.parseHTML(data);
+            const nodes = jQuery.parseHTML(data);
             secret.append(nodes);
 
-            var rentalEstimate = jQuery("#ds-rental-home-values").text().split("$")[1];
+            const rentalEstimate = jQuery("#ds-rental-home-values").text().split("$")[1];
             secret.remove();
 
-            var estimateMsg = "Rental Estimate: Not Available";
+            let estimateMsg = "Rental Estimate: Not Available";
             if (rentalEstimate !== undefined) {
                 numOfEstimates++;
                 estimateMsg = "Rental Estimate: $" + rentalEstimate;
             }
-            var cardInfo = article.find(".list-card-info");
-            var footer = $('<div></div>');
-            footer.css("order", "4");
+            const footer = $('<div></div>');
+            footer.css("order", index);
             footer.append('<div class="list-card-type"> ' + estimateMsg + ' </div>');
 
             return cardInfo.append(footer);
         });
-    });
+    }
 })();
