@@ -18,7 +18,7 @@
         return;
     }
 
-    const propertyTaxRate = {"AZ": 0.0068};
+    const propertyTaxRate = {"AZ": 0.0068, "WA": 0.0101};
     const insuranceMultiplier = 1466 / 349000;
 
     console.info("### Starting Rental Estimate Summary");
@@ -31,7 +31,6 @@
     //Extract and add monthly cost and rental estimates for each listing (i.e. article)
     articles.map(function() {
         const article = $(this);
-        const insuranceAndTax = getInsuranceAndTax(article);
         const url = article.find("div a").attr("href");
         const urlItems = url.split("/");
         const id = urlItems[urlItems.length - 2];
@@ -50,6 +49,7 @@
             secret.remove();
 
             let monthlyCost = undefined;
+            const insuranceAndTax = getInsuranceAndTax(id, article);
             if (insuranceAndTax !== undefined) {
                 monthlyCost = hoa + insuranceAndTax["insurance"] + insuranceAndTax["propertyTax"];
                 logDebug(id, "Monthly Cost = " + monthlyCost);
@@ -96,13 +96,16 @@
         });
         return state;
     }
-    function getInsuranceAndTax(article) {
+    function getInsuranceAndTax(id, article) {
         let price = article.find(".list-card-price").text();
+        logDebug(id, "Price Text = " + price);
         if (price !== undefined) {
-            price = price.replace("$", "").replace(",", "").replace("+", "");
+            price = price.replace("$", "").replaceAll(",", "").replace("+", "");
             const insurance = insuranceMultiplier * price / 12;
             const propertyTax = propertyTaxRate[defaultState] * price / 12;
-            return {"insurance": insurance, "propertyTax": propertyTax};
+            const insuranceAndTax = {"insurance": insurance, "propertyTax": propertyTax};
+            logDebug(id, "Insurance = " + insurance + "; Tax = " + propertyTax);
+            return insuranceAndTax;
         }
         return undefined;
     }
