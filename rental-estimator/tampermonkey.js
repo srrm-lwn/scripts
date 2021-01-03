@@ -133,7 +133,11 @@
     }
 
     function extractRentalEstimate() {
-        return $("#ds-rental-home-values").text().split("$")[1];
+        let rentalText = $("#ds-rental-home-values").text().split("$")[1];
+        if (rentalText !== undefined) {
+            rentalText = rentalText.replaceAll("/mo", "").replaceAll(",", "");
+        }
+        return rentalText;
     }
 
     function extractHOA() {
@@ -152,15 +156,12 @@
         let monthlyCost;
         const {insurance, propertyTax} = extractInsuranceAndTax(id, article);
         monthlyCost = hoa + insurance + propertyTax;
-        monthlyCost = monthlyCost.toFixed(0);
         logDebug(id, "Monthly Cost = " + monthlyCost + "; HOA = " + hoa + "; Insurance = " + insurance + "; Tax = " + propertyTax);
         return monthlyCost;
     }
 
     function extractInsuranceAndTax(id, article) {
         let price = article.find(".list-card-price").text();
-        logDebug(id, "Price Text = " + price);
-        logDebug(id, "Tax Rate = " + propertyTaxRate[defaultState]);
         if (price !== undefined) {
             price = price.replace("$", "").replaceAll(",", "").replace("+", "");
             const insurance = insuranceRate * price / 12;
@@ -171,26 +172,25 @@
     }
 
     function calculateEmoji(id, rentalEstimate, monthlyCost) {
-        let emoji = "";
         if (rentalEstimate === undefined || monthlyCost === undefined || isNaN(parseFloat(monthlyCost))) {
             return emoji;
         }
-        if (rentalEstimate > 2 * monthlyCost) {
-            // emoji = "\u{1F525} ";
+        const rent = parseFloat(rentalEstimate);
+        const cost = parseFloat(monthlyCost);
+        if (rent > (2 * cost)) {
+            return "\u{1F525} ";
         }
-
-        if (monthlyCost > rentalEstimate) {
-            // emoji = "\u{1F4A9} ";
+        if (cost > rent) {
+            return "\u{1F4A9} ";
         }
-        logDebug(id, "Emoji = " + emoji);
-        return emoji;
+        return "";
     }
 
     function addMonthlyCostToListing(monthlyCost, emoji, cardInfo) {
-        let prefix = emoji + "Monthly Cost (excl. mortgage): ";
+        let prefix =  "Monthly Cost (excl. mortgage): ";
         let monthlyCostMsg = prefix + "Not Available";
         if (monthlyCost !== undefined || !isNaN(parseFloat(monthlyCost))) {
-            monthlyCostMsg = prefix + "$" + monthlyCost + "/mo";
+            monthlyCostMsg = prefix + "$" + parseFloat(monthlyCost).toFixed(0) + "/mo " + emoji;
         }
 
         const monthlyCostFooter = $('<div></div>');
@@ -203,7 +203,7 @@
         let prefix = "Rental Estimate: ";
         let estimateMsg = prefix + "Not Available";
         if (rentalEstimate !== undefined) {
-            estimateMsg = prefix + "$" + rentalEstimate;
+            estimateMsg = prefix + "$" + parseFloat(rentalEstimate).toFixed(0) + "/mo";
         }
         const footer = $('<div></div>');
         footer.css("order", 5);
