@@ -95,8 +95,10 @@
             let monthlyCost = computeMonthlyCost(id, article, hoa);
 
             const cardInfo = article.find(".list-card-info");
-            addMonthlyCostToListing(monthlyCost, cardInfo);
-            addRentalEstimateToListing(rentalEstimate, cardInfo);
+
+            const emoji = calculateEmoji(id, rentalEstimate, monthlyCost);
+            addMonthlyCostToListing(monthlyCost, emoji, cardInfo);
+            addRentalEstimateToListing(rentalEstimate, emoji, cardInfo);
         });
     });
 
@@ -168,8 +170,24 @@
         return undefined;
     }
 
-    function addMonthlyCostToListing(monthlyCost, cardInfo) {
-        let prefix = "Monthly Cost (excl. mortgage): ";
+    function calculateEmoji(id, rentalEstimate, monthlyCost) {
+        let emoji = "";
+        if (rentalEstimate === undefined || monthlyCost === undefined || isNaN(parseFloat(monthlyCost))) {
+            return emoji;
+        }
+        if (rentalEstimate > 2 * monthlyCost) {
+            // emoji = "\u{1F525} ";
+        }
+
+        if (monthlyCost > rentalEstimate) {
+            // emoji = "\u{1F4A9} ";
+        }
+        logDebug(id, "Emoji = " + emoji);
+        return emoji;
+    }
+
+    function addMonthlyCostToListing(monthlyCost, emoji, cardInfo) {
+        let prefix = emoji + "Monthly Cost (excl. mortgage): ";
         let monthlyCostMsg = prefix + "Not Available";
         if (monthlyCost !== undefined || !isNaN(parseFloat(monthlyCost))) {
             monthlyCostMsg = prefix + "$" + monthlyCost + "/mo";
@@ -177,11 +195,11 @@
 
         const monthlyCostFooter = $('<div></div>');
         monthlyCostFooter.css("order", 4);
-        monthlyCostFooter.append('<div class="list-card-type"> ' + monthlyCostMsg + ' </div>');
+        monthlyCostFooter.append('<div class="list-card-type rental-cost-estimate"> ' + monthlyCostMsg + ' </div>');
         cardInfo.append(monthlyCostFooter);
     }
 
-    function addRentalEstimateToListing(rentalEstimate, cardInfo) {
+    function addRentalEstimateToListing(rentalEstimate, style, cardInfo) {
         let prefix = "Rental Estimate: ";
         let estimateMsg = prefix + "Not Available";
         if (rentalEstimate !== undefined) {
@@ -189,7 +207,7 @@
         }
         const footer = $('<div></div>');
         footer.css("order", 5);
-        footer.append('<div class="list-card-type"> ' + estimateMsg + ' </div>');
+        footer.append('<div class="list-card-type rental-cost-estimate"> ' + estimateMsg + ' </div>');
 
         return cardInfo.append(footer);
     }
