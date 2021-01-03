@@ -31,10 +31,53 @@
     //Extract and add monthly cost and rental estimates for each listing (i.e. article)
     articles.map(function() {
         const article = $(this);
-        const cardInfo = article.find(".list-card-info");
-        var index = 4;
-        addMonthlyCostEstimate(article, cardInfo, index++);
-        addRentalEstimate(article, cardInfo, index++);
+        const insuranceAndTax = getInsuranceAndTax(article);
+        const url = article.find("div a").attr("href");
+        const urlItems = url.split("/");
+        const id = urlItems[urlItems.length - 2];
+
+        $.get(url).then(function (data) {
+            logDebug(id, "Fetched URL - " + url);
+
+            const secret = $('<div id="secret"></div>');
+            $('body').append(secret);
+            secret.hide();
+            const nodes = jQuery.parseHTML(data);
+            secret.append(nodes);
+
+            const rentalEstimate = jQuery("#ds-rental-home-values").text().split("$")[1];
+            const hoa = getHOA();
+            secret.remove();
+
+            let monthlyCost = undefined;
+            if (insuranceAndTax !== undefined) {
+                monthlyCost = hoa + insuranceAndTax["insurance"] + insuranceAndTax["propertyTax"];
+                logDebug(id, "Monthly Cost = " + monthlyCost);
+                monthlyCost = monthlyCost.toFixed(0);
+                logDebug(id, "HOA = " + hoa + " Insurance = " + insuranceAndTax["insurance"] + " Tax = " + insuranceAndTax["propertyTax"]);
+            }
+
+            const cardInfo = article.find(".list-card-info");
+            let monthlyCostMsg = "Non-Mortgage Monthly Cost: Not Available";
+            if (monthlyCost !== undefined) {
+                monthlyCostMsg = "Non-Mortgage Monthly Cost: $" + monthlyCost + "/mo";
+            }
+
+            const monthlyCostFooter = $('<div></div>');
+            monthlyCostFooter.css("order", 4);
+            monthlyCostFooter.append('<div class="list-card-type"> ' + monthlyCostMsg + ' </div>');
+            cardInfo.append(monthlyCostFooter);
+
+            let estimateMsg = "Rental Estimate: Not Available";
+            if (rentalEstimate !== undefined) {
+                estimateMsg = "Rental Estimate: $" + rentalEstimate;
+            }
+            const footer = $('<div></div>');
+            footer.css("order", 5);
+            footer.append('<div class="list-card-type"> ' + estimateMsg + ' </div>');
+
+            return cardInfo.append(footer);
+        });
     });
 
     function extractDefaultState(articles) {
@@ -53,54 +96,34 @@
         });
         return state;
     }
-
-    function addMonthlyCostEstimate(article, cardInfo, index) {
-        let monthlyCostMsg = "Non-Mortgage Costs: Not Available";
+    function getInsuranceAndTax(article) {
         let price = article.find(".list-card-price").text();
         if (price !== undefined) {
             price = price.replace("$", "").replace(",", "").replace("+", "");
             const insurance = insuranceMultiplier * price / 12;
             const propertyTax = propertyTaxRate[defaultState] * price / 12;
-            //todo: add HOA
-            const monthlyCost = (insurance + propertyTax).toFixed(0);
-            console.log("Price = " + price + "; Insurance = " + insurance + "; Property Tax = " + propertyTax + "; Monthly Cost = " + monthlyCost);
-            if (monthlyCost !== undefined || !isNaN(parseFloat(monthlyCost))) {
-                monthlyCostMsg = "Non-Mortgage Costs: $" + monthlyCost + "/mo";
-            }
+            return {"insurance": insurance, "propertyTax": propertyTax};
         }
-        console.info(monthlyCostMsg);
-        const monthlyCostFooter = $('<div></div>');
-        monthlyCostFooter.css("order", index);
-        monthlyCostFooter.append('<div class="list-card-type"> ' + monthlyCostMsg + ' </div>');
-        cardInfo.append(monthlyCostFooter);
+        return undefined;
     }
 
-    function addRentalEstimate(article, cardInfo, index) {
-        let numOfEstimates = 0;
-        const url = article.find("div a").attr("href");
-        console.debug("Fetching URL - " + url);
-        $.get(url).then(function (data) {
-            console.debug("Fetched URL - " + url);
-
-            const secret = $('<div id="secret"></div>');
-            $('body').append(secret);
-            secret.hide();
-            const nodes = jQuery.parseHTML(data);
-            secret.append(nodes);
-
-            const rentalEstimate = jQuery("#ds-rental-home-values").text().split("$")[1];
-            secret.remove();
-
-            let estimateMsg = "Rental Estimate: Not Available";
-            if (rentalEstimate !== undefined) {
-                numOfEstimates++;
-                estimateMsg = "Rental Estimate: $" + rentalEstimate;
+    function getHOA() {
+        let hoaText = $(".ds-home-fact-list-item span:contains('HOA')");
+        if (hoaText !== undefined) {
+            let hoaVal = hoaText.next().text();
+            if (hoaVal !== undefined) {
+                hoaVal = hoaVal.replace("$", "").replace("/mo", "");
+                return hoaVal === "" ? 0 : parseFloat(hoaVal);
             }
-            const footer = $('<div></div>');
-            footer.css("order", index);
-            footer.append('<div class="list-card-type"> ' + estimateMsg + ' </div>');
+        }
+        return 0;
+    }
 
-            return cardInfo.append(footer);
-        });
+    function logInfo(id, msg) {
+        console.info("["  + id + "] " + msg);
+    }
+
+    function logDebug(id, msg) {
+        console.debug("["  + id + "] " + msg);
     }
 })();
