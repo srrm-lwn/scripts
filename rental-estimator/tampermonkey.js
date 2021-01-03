@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Rental Estimate Summary
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  try to take over the world!
 // @author       You
 // @match        *://www.zillow.com/*
@@ -139,7 +139,7 @@
         if (hoaText !== undefined) {
             let hoaVal = hoaText.next().text();
             if (hoaVal !== undefined) {
-                hoaVal = hoaVal.replace("$", "").replace("/mo", "");
+                hoaVal = hoaVal.replace("$", "").replace("/mo", "").replaceAll(",", "");
                 return hoaVal === "" ? 0 : parseFloat(hoaVal);
             }
         }
