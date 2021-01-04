@@ -173,7 +173,7 @@
 
     function calculateEmoji(id, rentalEstimate, monthlyCost) {
         if (rentalEstimate === undefined || monthlyCost === undefined || isNaN(parseFloat(monthlyCost))) {
-            return emoji;
+            return "";
         }
         const rent = parseFloat(rentalEstimate);
         const cost = parseFloat(monthlyCost);
